@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plataforma de Rastreabilidade Animal</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background-color: #f5f5f5;
+    }
+    header {
+        background-color: #2e7d32;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+    }
+    main {
+        display: flex;
+    }
+    nav {
+        width: 220px;
+        background: #fff;
+        padding: 20px;
+        border-right: 1px solid #ddd;
+        height: 100vh;
+    }
+    nav a {
+        display: block;
+        padding: 10px;
+        margin-bottom: 8px;
+        text-decoration: none;
+        color: #333;
+        border-radius: 5px;
+    }
+    nav a:hover {
+        background: #e8f5e9;
+    }
+    .content {
+        flex: 1;
+        padding: 20px;
+    }
+    .cards {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .card {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        flex: 1;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+        min-width: 150px;
+    }
+    table {
+        width: 100%;
+        background: white;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 15px;
+    }
+    table th, table td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+    table th {
+        background: #e8f5e9;
+    }
+    .btnExcluir, .btnEditar {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        color: white;
+    }
+    .btnExcluir {
+        background: #c62828;
+    }
+    .btnExcluir:hover {
+        background: #8e0000;
+    }
+    .btnEditar {
+        background: #0277bd;
+        margin-right: 5px;
+    }
+    .btnEditar:hover {
+        background: #004c8c;
+    }
+    form {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+    }
+    form input, form select, form button {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        flex: 1;
+        min-width: 150px;
+    }
+    form button {
+        background: #2e7d32;
+        color: white;
+        border: none;
+        cursor: pointer;
+        flex: none;
+        min-width: 120px;
+    }
+    form button:hover {
+        background: #1b5e20;
+    }
+    .btnCancelar {
+        background: #757575;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 8px 12px;
+        cursor: pointer;
+        min-width: 120px;
+    }
+    .btnCancelar:hover {
+        background: #494949;
+    }
+</style>
+</head>
+<body>
+
+<header>🐄 Plataforma de Rastreabilidade Animal</header>
+
+<main>
+    <nav>
+        <a href="#">📊 Dashboard</a>
+        <a href="#">🐮 Rebanho</a>
+        <a href="#">📋 Histórico</a>
+        <a href="#">📍 Movimentação</a>
+        <a href="#">📄 Documentos</a>
+    </nav>
+
+    <div class="content">
+        
+        <!-- Formulário de Cadastro -->
+        <form id="formCadastro">
+            <h3 style="width: 100%;">➕ Cadastrar Novo Animal</h3>
+            <input type="text" id="numero" placeholder="Número de identificação" required>
+            <input type="text" id="nome" placeholder="Nome" required>
+            <input type="text" id="raca" placeholder="Raça" required>
+            <input type="date" id="nascimento" required>
+            <select id="sexo" required>
+                <option value="">Sexo</option>
+                <option value="M">Macho</option>
+                <option value="F">Fêmea</option>
+            </select>
+            <button type="submit" id="btnSubmit">Adicionar</button>
+            <button type="button" id="btnCancelarEdicao" class="btnCancelar" style="display:none;">Cancelar</button>
+        </form>
+
+        <!-- Cards -->
+        <div class="cards">
+            <div class="card"><h3 id="totalAnimais">0</h3><p>Animais no rebanho</p></div>
+            <div class="card"><h3 id="prontosVenda">0</h3><p>Prontos para venda</p></div>
+            <div class="card"><h3 id="vacinasPendentes">0</h3><p>Vacinas pendentes</p></div>
+            <div class="card"><h3 id="eventosRecentes">0</h3><p>Eventos recentes</p></div>
+        </div>
+
+        <!-- Tabela -->
+        <h2>📜 Lista de Animais</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Nome</th>
+                    <th>Raça</th>
+                    <th>Nascimento</th>
+                    <th>Sexo</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaAnimais">
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+    // Carrega do LocalStorage ou cria lista inicial
+    let animais = JSON.parse(localStorage.getItem("animais")) || [
+        {numero: "123456", nome: "Parker", raca: "Hereford", nascimento: "2020-03-16", sexo: "M"},
+        {numero: "123460", nome: "Bella", raca: "Holandesa", nascimento: "2020-07-02", sexo: "F"},
+        {numero: "121500", nome: "Max", raca: "Angus", nascimento: "2019-11-21", sexo: "M"}
+    ];
+
+    let editIndex = -1; // Índice do animal que está sendo editado
+
+    function salvarNoLocalStorage() {
+        localStorage.setItem("animais", JSON.stringify(animais));
+    }
+
+    function excluirAnimal(index) {
+        if (confirm("Tem certeza que deseja excluir este animal?")) {
+            animais.splice(index, 1);
+            salvarNoLocalStorage();
+            atualizarTabela();
+            atualizarCards();
+            if (editIndex === index) {
+                cancelarEdicao();
+            }
+        }
+    }
+
+    function editarAnimal(index) {
+        editIndex = index;
+        const animal = animais[index];
+        document.getElementById("numero").value = animal.numero;
+        document.getElementById("nome").value = animal.nome;
+        document.getElementById("raca").value = animal.raca;
+        document.getElementById("nascimento").value = animal.nascimento;
+        document.getElementById("sexo").value = animal.sexo;
+
+        document.getElementById("btnSubmit").textContent = "Atualizar";
+        document.querySelector("#formCadastro h3").textContent = "✏️ Editar Animal";
+        document.getElementById("btnCancelarEdicao").style.display = "inline-block";
+    }
+
+    function cancelarEdicao() {
+        editIndex = -1;
+        document.getElementById("formCadastro").reset();
+        document.getElementById("btnSubmit").textContent = "Adicionar";
+        document.querySelector("#formCadastro h3").textContent = "➕ Cadastrar Novo Animal";
+        document.getElementById("btnCancelarEdicao").style.display = "none";
+    }
+
+    function atualizarTabela() {
+        const tabela = document.getElementById("tabelaAnimais");
+        tabela.innerHTML = "";
+        animais.forEach((animal, index) => {
+            tabela.innerHTML += `
+                <tr>
+                    <td>${animal.numero}</td>
+                    <td>${animal.nome}</td>
+                    <td>${animal.raca}</td>
+                    <td>${animal.nascimento.split("-").reverse().join("/")}</td>
+                    <td>${animal.sexo}</td>
+                    <td>
+                        <button class="btnEditar" onclick="editarAnimal(${index})">Editar</button>
+                        <button class="btnExcluir" onclick="excluirAnimal(${index})">Excluir</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function atualizarCards() {
+        document.getElementById("totalAnimais").textContent = animais.length;
+        document.getElementById("prontosVenda").textContent = 2; // Simulado
+        document.getElementById("vacinasPendentes").textContent = 3; // Simulado
+        document.getElementById("eventosRecentes").textContent = 4; // Simulado
+    }
+
+    document.getElementById("formCadastro").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const numero = document.getElementById("numero").value;
+        const nome = document.getElementById("nome").value;
+        const raca = document.getElementById("raca").value;
+        const nascimento = document.getElementById("nascimento").value;
+        const sexo = document.getElementById("sexo").value;
+
+        if (editIndex === -1) {
+            // Adicionar novo
+            animais.push({numero, nome, raca, nascimento, sexo});
+        } else {
+            // Atualizar existente
+            animais[editIndex] = {numero, nome, raca, nascimento, sexo};
+        }
+
+        salvarNoLocalStorage();
+        atualizarTabela();
+        atualizarCards();
+        cancelarEdicao();
+    });
+
+    document.getElementById("btnCancelarEdicao").addEventListener("click", cancelarEdicao);
+
+    atualizarTabela();
+    atualizarCards();
+</script>
+
+</body>
+</html>
