@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Plataforma de Rastreamento Animal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: #f7f9fc;
+      color: #333;
+    }
+    header {
+      background-color: saddlebrown;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+    header h1 { margin: 0; font-size: 1.8em; }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      color: saddlebrown;
+    }
+
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+    }
+
+    button {
+      background-color: saddlebrown;
+      color: white;
+      border: none;
+      font-weight: 600;
+      transition: background 0.3s;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1b5e20;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f1f1f1;
+      font-weight: 600;
+    }
+
+    .actions button {
+      margin: 0 3px;
+      padding: 5px 8px;
+      font-size: 0.9em;
+    }
+
+    .filtros {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (min-width: 600px) {
+      .filtros {
+        flex-direction: row;
+      }
+
+      input, select {
+        width: auto;
+        flex: 1;
+      }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    ul li {
+      margin-bottom: 6px;
+    }
+
+    .btn-delete {
+      color: #d32f2f;
+      background: transparent;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🐄 Agro Rastreamento </h1>
+</header>
+
+<div class="container">
+
+  <div class="card filtros">
+    <input type="text" id="filtroNome" placeholder="Filtrar por nome">
+    <input type="text" id="filtroNumero" placeholder="Filtrar por número">
+  </div>
+
+  <div class="card">
+    <h3>➕ Cadastrar Novo Animal</h3>
+    <form id="formCadastro">
+      <input type="text" id="numero" placeholder="Número de identificação" required>
+      <input type="text" id="nome" placeholder="Nome" required>
+      <input type="text" id="raca" placeholder="Raça" required>
+      <input type="date" id="nascimento" required>
+      <select id="sexo" required>
+        <option value="">Sexo</option>
+        <option value="M">Macho</option>
+        <option value="F">Fêmea</option>
+      </select>
+      <select id="categoria" required>
+        <option value="">Categoria</option>
+        <option value="Bezerro">Bezerro</option>
+        <option value="Novilha">Novilha</option>
+        <option value="Garrote">Garrote</option>
+        <option value="Vaca">Vaca</option>
+        <option value="Boi">Boi</option>
+        <option value="Potro">Potro</option>
+        <option value="Égua">Égua</option>
+        <option value="Cavalo">Cavalo</option>
+      </select>
+      <button type="submit">Salvar</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>📋 Lista de Animais</h3>
+    <table id="tabelaAnimais">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Nome</th>
+          <th>Raça</th>
+          <th>Nascimento</th>
+          <th>Sexo</th>
+          <th>Categoria</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card hidden" id="vacinasDiv">
+    <h3>💉 Vacinas para: <span id="animalSelecionado"></span></h3>
+    <input type="text" id="vacinaInput" placeholder="Nome da vacina">
+    <input type="date" id="dataVacina" placeholder="Data da vacina">
+    <button onclick="adicionarVacina()">Adicionar Vacina</button>
+    <ul id="listaVacinas"></ul>
+  </div>
+
+</div>
+
+<script>
+  let animais = JSON.parse(localStorage.getItem("animais")) || [];
+  let vacinas = JSON.parse(localStorage.getItem("vacinas")) || {};
+  let indiceEdicao = null;
+  let animalAtual = null;
+
+  const atualizarTabela = () => {
+    const tbody = document.querySelector("#tabelaAnimais tbody");
+    tbody.innerHTML = "";
+    const filtroNome = document.getElementById("filtroNome").value.toLowerCase();
+    const filtroNumero = document.getElementById("filtroNumero").value.toLowerCase();
+
+    animais.forEach((animal, index) => {
+      if (
+        animal.nome.toLowerCase().includes(filtroNome) &&
+        animal.numero.toLowerCase().includes(filtroNumero)
+      ) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${animal.numero}</td>
+          <td>${animal.nome}</td>
+          <td>${animal.raca}</td>
+          <td>${animal.nascimento}</td>
+          <td>${animal.sexo}</td>
+          <td>${animal.categoria}</td>
+          <td class="actions">
+            <button onclick="editarAnimal(${index})">✏️</button>
+            <button onclick="excluirAnimal(${index})">🗑️</button>
+            <button onclick="abrirVacinas(${index})">💉</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    });
+
+    localStorage.setItem("animais", JSON.stringify(animais));
+  };
+
+  document.getElementById("formCadastro").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const numero = document.getElementById("numero").value;
+    const nome = document.getElementById("nome").value;
+    const raca = document.getElementById("raca").value;
+    const nascimento = document.getElementById("nascimento").value;
+    const sexo = document.getElementById("sexo").value;
+    const categoria = document.getElementById("categoria").value;
+
+    const numeroExiste = animais.some((animal, index) =>
+      animal.numero === numero && index !== indiceEdicao
+    );
+    if (numeroExiste) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Número duplicado',
+        text: 'Já existe um animal com este número de identificação.',
+        confirmButtonColor: '#2e7d32'
+      });
+      return;
+    }
+
+    if (indiceEdicao !== null) {
+      animais[indiceEdicao] = {numero, nome, raca, nascimento, sexo, categoria};
+      indiceEdicao = null;
+    } else {
+      animais.push({numero, nome, raca, nascimento, sexo, categoria});
+    }
+
+    this.reset();
+    atualizarTabela();
+  });
+
+  const editarAnimal = (index) => {
+    const animal = animais[index];
+    document.getElementById("numero").value = animal.numero;
+    document.getElementById("nome").value = animal.nome;
+    document.getElementById("raca").value = animal.raca;
+    document.getElementById("nascimento").value = animal.nascimento;
+    document.getElementById("sexo").value = animal.sexo;
+    document.getElementById("categoria").value = animal.categoria;
+    indiceEdicao = index;
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  };
+
+  const excluirAnimal = (index) => {
+    if (confirm("Deseja realmente excluir este animal?")) {
+      animais.splice(index, 1);
+      atualizarTabela();
+    }
+  };
+
+  const abrirVacinas = (index) => {
+    animalAtual = animais[index].numero;
+    document.getElementById("animalSelecionado").innerText = `${animais[index].nome} (#${animalAtual})`;
+    document.getElementById("vacinasDiv").classList.remove("hidden");
+    atualizarListaVacinas();
+  };
+
+  const adicionarVacina = () => {
+    const vacinaNome = document.getElementById("vacinaInput").value;
+    const dataVacina = document.getElementById("dataVacina").value;
+    if (!vacinaNome || !dataVacina) return;
+
+    if (!vacinas[animalAtual]) {
+      vacinas[animalAtual] = [];
+    }
+
+    vacinas[animalAtual].push(`${vacinaNome} (${dataVacina})`);
+    localStorage.setItem("vacinas", JSON.stringify(vacinas));
+    document.getElementById("vacinaInput").value = "";
+    document.getElementById("dataVacina").value = "";
+    atualizarListaVacinas();
+  };
+
+  const excluirVacina = (index) => {
+    vacinas[animalAtual].splice(index, 1);
+    localStorage.setItem("vacinas", JSON.stringify(vacinas));
+    atualizarListaVacinas();
+  };
+
+  const atualizarListaVacinas = () => {
+    const lista = document.getElementById("listaVacinas");
+    lista.innerHTML = "";
+    (vacinas[animalAtual] || []).forEach((vacina, index) => {
+      const li = document.createElement("li");
+      li.textContent = vacina + " ";
+      const btn = document.createElement("button");
+      btn.innerText = "❌";
+      btn.className = "btn-delete";
+      btn.onclick = () => excluirVacina(index);
+      li.appendChild(btn);
+      lista.appendChild(li);
+    });
+  };
+
+  document.getElementById("filtroNome").addEventListener("input", atualizarTabela);
+  document.getElementById("filtroNumero").addEventListener("input", atualizarTabela);
+
+  atualizarTabela();
+</script>
+
+</body>
+</html>
